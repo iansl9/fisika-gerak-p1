@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kalkulator Gerak — Redesain Interaktif</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg-1:#0f172a; --card:#0b1220; --muted:#94a3b8; --accent:#7c3aed; --glass: rgba(255,255,255,0.04);
+      --card-2:#0b1226; --success:#10b981;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
+      background:linear-gradient(180deg,var(--bg-1),#071023);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:24px
+    }
+
+    .app{
+      width:100%;max-width:980px;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(2,6,23,0.6);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      display:grid;grid-template-columns:320px 1fr;min-height:620px
+    }
+
+    /* SIDEBAR */
+    .sidebar{background:linear-gradient(180deg,#06102a33, rgba(255,255,255,0.02));padding:22px}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#4f46e5);display:flex;align-items:center;justify-content:center;font-weight:800}
+    h1{font-size:16px;margin:0}
+    .lead{font-size:13px;color:var(--muted);margin-top:6px}
+
+    .nav{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+    .nav button{background:transparent;border:0;color:inherit;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-weight:700;padding-left:10px}
+    .nav button:hover{background:linear-gradient(90deg,rgba(124,58,237,0.14),rgba(99,102,241,0.08));transform:translateX(6px)}
+    .nav button.active{background:linear-gradient(90deg,rgba(124,58,237,0.22),rgba(99,102,241,0.12))}
+
+    /* CONTENT */
+    .content{padding:26px}
+    .topbar{display:flex;justify-content:space-between;align-items:center}
+    .breadcrumbs{font-size:13px;color:var(--muted)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:18px;margin-top:18px;border:1px solid rgba(255,255,255,0.03)}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px}
+    .tile{background:linear-gradient(180deg,rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:10px;cursor:pointer;transition:all .18s;box-shadow:0 6px 18px rgba(2,6,23,0.5)}
+    .tile:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(2,6,23,0.6)}
+    .tile h3{margin:0;font-size:15px}
+    .tile p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+    /* SECTION TRANSITION */
+    .section{display:none;animation:fadeIn .26s ease both}
+    .section.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    /* modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(2,6,23,0.6),rgba(2,6,23,0.7));z-index:60;padding:20px}
+    .modal.show{display:flex}
+    .modal-card{width:100%;max-width:720px;background:#041423;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.03)}
+    .modal-card header{display:flex;justify-content:space-between;align-items:center}
+    .modal-card h2{margin:0}
+    .close-btn{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:8px;border-radius:8px}
+
+    form{margin-top:12px;display:grid;gap:10px}
+    label{font-size:13px;color:var(--muted)}
+    input[type=number]{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .controls{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+    .btn{background:linear-gradient(90deg,var(--accent),#4f46e5);border:none;padding:10px 14px;border-radius:10px;color:white;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+
+    .result{margin-top:12px;padding:12px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02);color:#dbeafe}
+
+    canvas{max-height:320px}
+
+    /* responsive */
+    @media (max-width:900px){.app{grid-template-columns:1fr;min-height:unset}.sidebar{display:flex;gap:12px;overflow:auto;padding:14px}.content{padding:18px}}
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">KG</div>
+        <div>
+          <h1>Kalkulator Gerak</h1>
+          <div class="lead">Interaktif · Responsif · Visual</div>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Kategori gerak">
+        <button data-section="home" class="active">Beranda</button>
+        <button data-section="glb">GLB</button>
+        <button data-section="glbb">GLBB</button>
+        <button data-section="vertikal">Vertikal</button>
+        <button data-section="jatuh">Jatuh Bebas</button>
+        <button data-section="parabola">Parabola</button>
+        <button data-section="melingkar">Melingkar</button>
+      </nav>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Tip: pilih kategori lalu sub tugas untuk membukanya.</div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar"><div class="breadcrumbs">Beranda</div><div style="font-size:13px;color:var(--muted)">g = 9.80665 m/s²</div></div>
+
+      <section id="home" class="section active">
+        <div class="card">
+          <h2>Pilih kategori gerak</h2>
+          <div class="grid" id="homeGrid"></div>
+        </div>
+      </section>
+
+      <section id="glb" class="section">
+        <div class="card">
+          <h2>Gerak Lurus Beraturan (GLB)</h2>
+          <p class="lead">Pilih sub-tugas.</p>
+          <div class="grid" id="glbGrid"></div>
+        </div>
+      </section>
+
+      <section id="glbb" class="section">
+        <div class="card">
+          <h2>Gerak Lurus Berubah Beraturan (GLBB)</h2>
+          <p class="lead">Pilih sub-tugas.</p>
+          <div class="grid" id="glbbGrid"></div>
+        </div>
+      </section>
+
+      <section id="vertikal" class="section">
+        <div class="card">
+          <h2>Gerak Vertikal</h2>
+          <p class="lead">Sub-tugas vertikal.</p>
+          <div class="grid" id="vertikalGrid"></div>
+        </div>
+      </section>
+
+      <section id="jatuh" class="section">
+        <div class="card">
+          <h2>Gerak Jatuh Bebas</h2>
+          <p class="lead">Sub-tugas jatuh bebas.</p>
+          <div class="grid" id="jatuhGrid"></div>
+        </div>
+      </section>
+
+      <section id="parabola" class="section">
+        <div class="card">
+          <h2>Gerak Parabola</h2>
+          <p class="lead">Sub-tugas parabola.</p>
+          <div class="grid" id="parabolaGrid"></div>
+        </div>
+      </section>
+
+      <section id="melingkar" class="section">
+        <div class="card">
+          <h2>Gerak Melingkar</h2>
+          <p class="lead">Sub-tugas melingkar.</p>
+          <div class="grid" id="melingkarGrid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <header>
+        <h2 id="modalTitle">Judul</h2>
+        <div>
+          <button class="close-btn" id="modalClose">Tutup</button>
+        </div>
+      </header>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    // App data model
+    const G = 9.80665;
+    const CATEGORIES = {
+      home:{title:'Beranda', tiles:[
+        {title:'GLB', subtitle:'Gerak lurus beraturan', section:'glb'},
+        {title:'GLBB', subtitle:'Gerak lurus berubah beraturan', section:'glbb'},
+        {title:'Vertikal', subtitle:'Gerak vertikal ke atas/bawah', section:'vertikal'},
+        {title:'Jatuh Bebas', subtitle:'Gerak jatuh tanpa hambatan', section:'jatuh'},
+        {title:'Parabola', subtitle:'Gerak proyektil', section:'parabola'},
+        {title:'Melingkar', subtitle:'Gerak melingkar', section:'melingkar'}
+      ]},
+      glb:{title:'GLB', subs:[
+        {id:'glb_v',label:'Hitung Kecepatan',fields:['s','t'],calc: (d)=>{ if(!isFinite(d.s)||!isFinite(d.t)||d.t===0) return {err:'Masukkan s dan t (t ≠ 0)'}; return {out:`v = ${fmt(d.s/d.t)} m/s`}}},
+        {id:'glb_t',label:'Hitung Waktu',fields:['s','v'],calc: (d)=>{ if(!isFinite(d.s)||!isFinite(d.v)||d.v===0) return {err:'Masukkan s dan v (v ≠ 0)'}; return {out:`t = ${fmt(d.s/d.v)} s`}}},
+        {id:'glb_s',label:'Hitung Jarak',fields:['v','t'],calc: (d)=>{ if(!isFinite(d.v)||!isFinite(d.t)) return {err:'Masukkan v dan t'}; return {out:`s = ${fmt(d.v*d.t)} m`}}}
+      ]},
+      glbb:{title:'GLBB', subs:[
+        {id:'glbb_v',label:'Kecepatan Akhir v',fields:['v0','a','t'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.a)||!isFinite(d.t)) return {err:'Isi v0, a, t'}; return {out:`v = ${fmt(d.v0 + d.a*d.t)} m/s`}}},
+        {id:'glbb_s',label:'Jarak s',fields:['v0','a','t'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.a)||!isFinite(d.t)) return {err:'Isi v0, a, t'}; return {out:`s = ${fmt(d.v0*d.t + 0.5*d.a*d.t*d.t)} m`, graph: genGLBBS(d)} }},
+        {id:'glbb_a',label:'Percepatan a',fields:['v0','v','t'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.v)||!isFinite(d.t)||d.t===0) return {err:'Isi v0,v,t (t ≠ 0)'}; return {out:`a = ${fmt((d.v - d.v0)/d.t)} m/s²`}}}
+      ]},
+      jatuh:{title:'Jatuh Bebas', subs:[
+        {id:'jatuh_t',label:'Waktu jatuh t dari h',fields:['h'],calc:(d)=>{ if(!isFinite(d.h)||d.h<0) return {err:'h harus ≥ 0'}; const t=Math.sqrt(2*d.h/G); return {out:`t = ${fmt(t)} s`, graph: genFreefall(d)} }},
+        {id:'jatuh_h',label:'Tinggi h dari t',fields:['t'],calc:(d)=>{ if(!isFinite(d.t)||d.t<0) return {err:'t harus ≥ 0'}; const h=0.5*G*d.t*d.t; return {out:`h = ${fmt(h)} m`, graph: genFreefall(d)} }}
+      ]},
+      vertikal:{title:'Vertikal', subs:[
+        {id:'vert_v',label:'Kecepatan v',fields:['v0','t','dir'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.t)) return {err:'Isi v0,t'}; const a = d.dir==='up' ? -G : G; return {out:`v = ${fmt(d.v0 + a*d.t)} m/s`}}},
+        {id:'vert_h',label:'Tinggi (bertanda)',fields:['v0','t','dir'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.t)) return {err:'Isi v0,t'}; const a = d.dir==='up' ? -G : G; return {out:`h = ${fmt(d.v0*d.t + 0.5*a*d.t*d.t)} m`, graph: genVertikal(d)} }},
+        {id:'vert_tmax',label:'Waktu naik maksimum',fields:['v0'],calc:(d)=>{ if(!isFinite(d.v0)) return {err:'Isi v0'}; const t = d.v0/G; return {out:`t_max = ${fmt(t)} s`}}}
+      ]},
+      parabola:{title:'Parabola', subs:[
+        {id:'par_range',label:'Jarak horizontal (range)',fields:['v0','theta'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.theta)) return {err:'Isi v0 dan sudut'}; const th = d.theta*Math.PI/180; const R = (d.v0*d.v0*Math.sin(2*th))/G; return {out:`R = ${fmt(R)} m`, graph: genParabola(d)} }},
+        {id:'par_hmax',label:'Tinggi maksimum',fields:['v0','theta'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.theta)) return {err:'Isi v0 dan sudut'}; const th=d.theta*Math.PI/180; const h=(d.v0*d.v0*Math.pow(Math.sin(th),2))/(2*G); return {out:`h_max = ${fmt(h)} m`} }},
+        {id:'par_ttotal',label:'Waktu total terbang',fields:['v0','theta'],calc:(d)=>{ if(!isFinite(d.v0)||!isFinite(d.theta)) return {err:'Isi v0 dan sudut'}; const th=d.theta*Math.PI/180; const t = (2*d.v0*Math.sin(th))/G; return {out:`t_total = ${fmt(t)} s`} }}
+      ]},
+      melingkar:{title:'Melingkar', subs:[
+        {id:'mel_v',label:'Kecepatan linear',fields:['r','w'],calc:(d)=>{ if(!isFinite(d.r)||!isFinite(d.w)) return {err:'Isi r dan ω'}; return {out:`v = ${fmt(d.r*d.w)} m/s`} }},
+        {id:'mel_T',label:'Periode T',fields:['w'],calc:(d)=>{ if(!isFinite(d.w)||d.w===0) return {err:'Isi ω (≠ 0)'}; return {out:`T = ${fmt(2*Math.PI/d.w)} s`} }}
+      ]}
+    };
+
+    // utilities
+    function fmt(n){ if(!isFinite(n)) return 'NaN'; if(Math.abs(n) < 1e-6) return '0.000000'; return (Math.round(n*1e6)/1e6).toString(); }
+
+    function renderTiles(){
+      // home
+      const homeGrid = document.getElementById('homeGrid'); homeGrid.innerHTML='';
+      CATEGORIES.home.tiles.forEach(t=>{
+        const el = document.createElement('div'); el.className='tile'; el.innerHTML=`<h3>${t.title}</h3><p>${t.subtitle}</p>`; el.onclick = ()=>{ selectSection(t.section) }; homeGrid.appendChild(el);
+      });
+
+      // each category
+      ['glb','glbb','vertikal','jatuh','parabola','melingkar'].forEach(key=>{
+        const grid = document.getElementById(key+'Grid'); grid.innerHTML='';
+        CATEGORIES[key].subs.forEach(sub=>{
+          const el = document.createElement('div'); el.className='tile'; el.innerHTML=`<h3>${sub.label}</h3><p class='muted'>Klik untuk buka form</p>`; el.onclick = ()=> openSubForm(key,sub); grid.appendChild(el);
+        })
+      })
+    }
+
+    // navigation
+    const navButtons = document.querySelectorAll('.nav button');
+    navButtons.forEach(b=>b.addEventListener('click', ()=>{ const s=b.dataset.section; selectSection(s); navButtons.forEach(x=>x.classList.remove('active')); b.classList.add('active'); }));
+
+    function selectSection(id){ document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); const el = document.getElementById(id); if(el) el.classList.add('active'); document.querySelector('.breadcrumbs').innerText = id==='home' ? 'Beranda' : `${CATEGORIES[id].title}`; }
+
+    // open submenu form in modal
+    const modalEl = document.getElementById('modal');
+    const modalContent = document.getElementById('modalContent');
+    document.getElementById('modalClose').addEventListener('click', ()=> modalEl.classList.remove('show'));
+
+    function openSubForm(category, sub){
+      modalEl.classList.add('show');
+      document.getElementById('modalTitle').innerText = `${CATEGORIES[category].title} · ${sub.label}`;
+      // build form
+      const form = document.createElement('form'); form.className='calc-form';
+      sub.fields.forEach(fld=>{
+        const label = document.createElement('label'); label.innerText = fieldLabel(fld);
+        const input = document.createElement('input'); input.type='number'; input.step='any'; input.name = fld; input.dataset.field = fld; if(fld==='dir'){ input.type='hidden'; input.value='up' };
+        form.appendChild(label); form.appendChild(input);
+        // special: if dir field, render a toggle
+        if(fld==='dir'){
+          const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='8px'; wrap.style.marginTop='8px';
+          const up = document.createElement('button'); up.type='button'; up.className='btn ghost'; up.innerText='Ke atas'; up.onclick=()=>{ input.value='up'; up.classList.add('active'); down.classList.remove('active'); };
+          const down = document.createElement('button'); down.type='button'; down.className='btn ghost'; down.innerText='Ke bawah'; down.onclick=()=>{ input.value='down'; down.classList.add('active'); up.classList.remove('active'); };
+          wrap.appendChild(up); wrap.appendChild(down); form.appendChild(wrap);
+        }
+      });
+      // default for some: if 'dir' not in fields and category vertikal has options, add direction toggle
+      if(category==='vertikal' && !sub.fields.includes('dir')){
+        const lab = document.createElement('label'); lab.innerText='Arah (opsional)';
+        const sel = document.createElement('select'); sel.name='dir'; sel.innerHTML=`<option value='up'>Ke atas</option><option value='down'>Ke bawah</option>`; form.appendChild(lab); form.appendChild(sel);
+      }
+
+      // actions
+      const ctrl = document.createElement('div'); ctrl.className='controls';
+      const calcBtn = document.createElement('button'); calcBtn.className='btn'; calcBtn.type='submit'; calcBtn.innerText='Hitung';
+      const closeBtn = document.createElement('button'); closeBtn.type='button'; closeBtn.className='btn ghost'; closeBtn.innerText='Tutup'; closeBtn.onclick=()=>modalEl.classList.remove('show');
+      ctrl.appendChild(closeBtn); ctrl.appendChild(calcBtn);
+      form.appendChild(ctrl);
+
+      const out = document.createElement('div'); out.className='result'; out.id='resultBox'; out.style.display='none';
+      const canvasWrap = document.createElement('div'); canvasWrap.style.marginTop='12px'; canvasWrap.innerHTML = `<canvas id='chartCanvas' style='display:none; width:100%;height:260px;'></canvas>`;
+
+      // submit handler
+      form.addEventListener('submit', function(ev){ ev.preventDefault(); const fd = {}; new FormData(form).forEach((v,k)=>{ fd[k]=v===''?NaN:parseFloat(v); }); // handle dir string
+        if(form.querySelector('[name="dir"]') && isNaN(fd['dir'])) fd['dir'] = form.querySelector('[name="dir"]').value;
+        const result = sub.calc(fd);
+        if(result.err){ out.style.display='block'; out.innerText = 'Error: '+result.err; if(chartInstance) { chartInstance.destroy(); chartInstance=null; } document.getElementById('chartCanvas').style.display='none'; }
+        else{
+          out.style.display='block'; out.innerHTML = result.out;
+          // chart
+          if(result.graph){ renderChart(result.graph); }
+          else{ if(window.chartInstance){ window.chartInstance.destroy(); window.chartInstance=null; } document.getElementById('chartCanvas').style.display='none'; }
+        }
+      });
+
+      modalContent.innerHTML=''; modalContent.appendChild(form); modalContent.appendChild(out); modalContent.appendChild(canvasWrap);
+    }
+
+    function fieldLabel(key){
+      const map = {s:'Jarak s (m)', t:'Waktu t (s)', v:'Kecepatan v (m/s)', v0:'Kecepatan awal v₀ (m/s)', a:'Percepatan a (m/s²)', h:'Tinggi h (m)', r:'Jari-jari r (m)', w:'ω (rad/s)', theta:'Sudut θ (°)', dir:'Arah: up/down'};
+      return map[key] || key;
+    }
+
+    // chart helper
+    let chartInstance = null;
+    function renderChart(g){ const ctx = document.getElementById('chartCanvas').getContext('2d'); document.getElementById('chartCanvas').style.display='block'; if(chartInstance) chartInstance.destroy(); chartInstance = new Chart(ctx,{type:g.type||'line',data:{labels:g.labels, datasets:[{label:g.label||'Grafik', data:g.data, fill:false, borderWidth:2, tension:0.25} ]}, options:{responsive:true, plugins:{legend:{display:false}}}}); }
+
+    // graph generators
+    function genFreefall(d){ let t = d.t || Math.sqrt(2*d.h/G); const steps=40; const labels=[], data=[]; for(let i=0;i<=steps;i++){ const ti = t*(i/steps); labels.push(ti.toFixed(2)); data.push((0.5*G*ti*ti).toFixed(4)); } return {type:'line',labels, data, label:'h(t)'} }
+    function genVertikal(d){ const t = d.t || (d.v0/G); const steps=40; const labels=[], data=[]; const a = d.dir==='up' ? -G : G; for(let i=0;i<=steps;i++){ const ti = t*(i/steps); labels.push(ti.toFixed(2)); data.push((d.v0*ti + 0.5*a*ti*ti).toFixed(4)); } return {labels,data,label:'h(t)'} }
+    function genGLBBS(d){ const T = d.t || 5; const steps=40; const labels=[], data=[]; for(let i=0;i<=steps;i++){ const ti = T*(i/steps); labels.push(ti.toFixed(2)); data.push((d.v0*ti + 0.5*d.a*ti*ti).toFixed(4)); } return {labels,data,label:'s(t)'} }
+    function genParabola(d){ const v0=d.v0, th=d.theta*Math.PI/180; const tTotal = (2*v0*Math.sin(th))/G || 0; const steps=60; const labels=[], data=[]; for(let i=0;i<=steps;i++){ const ti = tTotal*(i/steps); const x = v0*Math.cos(th)*ti; const y = v0*Math.sin(th)*ti - 0.5*G*ti*ti; labels.push(x.toFixed(2)); data.push(y.toFixed(4)); } return {type:'line', labels, data, label:'y(x)'} }
+
+    // render initial UI
+    renderTiles();
+
+    // small helpers to open forms programmatically
+    function openSubFormById(id){
+      // find category and sub
+      for(const k in CATEGORIES){ if(CATEGORIES[k].subs){ const sub = CATEGORIES[k].subs.find(s=>s.id===id); if(sub){ openSubForm(k,sub); selectSection(k); return } } }
+      console.warn('sub not found',id);
+    }
+
+    // expose for debugging
+    window.selectSection = selectSection; window.openSubForm = openSubForm; window.openSubFormById = openSubFormById;
+  </script>
+</body>
+</html>
