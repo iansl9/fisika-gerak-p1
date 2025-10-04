@@ -73,7 +73,24 @@
     canvas{max-height:320px}
 
     /* responsive */
-    @media (max-width:900px){.app{grid-template-columns:1fr;min-height:unset}.sidebar{display:flex;gap:12px;overflow:auto;padding:14px}.content{padding:18px}}
+    /* @media (max-width:900px){.app{grid-template-columns:1fr;min-height:unset}.sidebar{display:flex;gap:12px;overflow:auto;padding:14px}.content{padding:18px}} */
+    /* responsive */
+@media (max-width:900px){
+  .app{grid-template-columns:1fr;min-height:unset}
+  .sidebar{display:flex;gap:12px;overflow-x:auto;padding:14px;flex-wrap:nowrap}
+  .nav{flex-direction:row;gap:6px}
+  .nav button{white-space:nowrap;font-size:13px;padding:8px 12px}
+  .content{padding:18px}
+}
+
+@media (max-width:600px){
+  body{padding:12px}
+  .card{padding:14px}
+  h1{font-size:14px}
+  .tile h3{font-size:14px}
+  .tile p{font-size:12px}
+}
+
   </style>
 </head>
 <body>
@@ -322,3 +339,4 @@
   </script>
 </body>
 </html>
+
